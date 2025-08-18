@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using System.Linq;
+using WeatherApp.Data;
 
 namespace Databases
 {
@@ -38,13 +40,15 @@ namespace Databases
         {
             try
             {
-                // TODO: Set up database path using Application.persistentDataPath
-                _databasePath = "";
+                // Set up database path using Application.persistentDataPath
+                _databasePath = Path.Combine(Application.persistentDataPath, databaseName);
                 
-                // TODO: Create SQLite connection
-
-                // TODO: Create tables for game data
-
+                // Create SQLite connection
+                _database = new SQLiteConnection(_databasePath);
+                
+                // Create tables for game data
+                _database.CreateTable<HighScore>();
+                
                 Debug.Log($"Database initialized at: {_databasePath}");
             }
             catch (Exception ex)
@@ -53,38 +57,35 @@ namespace Databases
             }
         }
         
-        #region High Score Operations
-        
-        /// TODO: Students will implement this method
+
         public void AddHighScore(string playerName, int score, string levelName = "Default")
         {
-            try
-            {
-                // TODO: Create a new HighScore object
-                // TODO: Insert it into the database using _database.Insert()
-                
-                Debug.Log($"High score added: {playerName} - {score} points");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to add high score: {ex.Message}");
-            }
+            var highScore = new HighScore { 
+                PlayerName = playerName, 
+                Score = score,
+                LevelName = levelName
+            };
+            _database.Insert(highScore);
         }
-        
-        /// TODO: Students will implement this method
+
         public List<HighScore> GetTopHighScores(int limit = 10)
         {
-            try
+            return _database.Table<HighScore>().OrderByDescending(hs => hs.Score).Take(limit).ToList();
+        }
+
+        public void UpdateHighScore(int id, int newScore)
+        {
+            var highScore = _database.Find<HighScore>(id);
+            if (highScore != null)
             {
-                // TODO: Query the database for top scores
-                
-                return new List<HighScore>(); // Placeholder - students will replace this
+                highScore.Score = newScore;
+                _database.Update(highScore);
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to get high scores: {ex.Message}");
-                return new List<HighScore>();
-            }
+        }
+
+        public void DeleteHighScore(int id)
+        {
+            _database.Delete<HighScore>(id);
         }
         
         /// TODO: Students will implement this method
@@ -92,9 +93,12 @@ namespace Databases
         {
             try
             {
-                // TODO: Query the database for scores filtered by level
-                
-                return new List<HighScore>(); // Placeholder - students will replace this
+                // Query the database for scores filtered by level name, ordered by score descending
+                return _database.Table<HighScore>()
+                    .Where(hs => hs.LevelName == levelName)
+                    .OrderByDescending(hs => hs.Score)
+                    .Take(limit)
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -103,7 +107,17 @@ namespace Databases
             }
         }
         
-        #endregion
+        public void SaveWeatherData(WeatherData weatherData)
+        {
+            var record = new HighScore
+            {
+                PlayerName = weatherData.CityName,
+                Score = (int)weatherData.TemperatureInCelsius, // Example: using temperature as score
+                LevelName = "Weather"
+            };
+            _database.Insert(record);
+        }
+        
         
         #region Database Utility Methods
         
@@ -112,9 +126,8 @@ namespace Databases
         {
             try
             {
-                // TODO: Count the total number of high scores
-                
-                return 0; // Placeholder - students will replace this
+                // Count all records in the HighScore table
+                return _database.Table<HighScore>().Count();
             }
             catch (Exception ex)
             {
@@ -128,7 +141,8 @@ namespace Databases
         {
             try
             {
-                // TODO: Delete all high scores from the database
+                // Delete all records from the HighScore table
+                _database.DeleteAll<HighScore>();
                 
                 Debug.Log("All high scores cleared");
             }

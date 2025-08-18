@@ -5,6 +5,7 @@ using System;
 using Newtonsoft.Json;
 using WeatherApp.Data;
 using WeatherApp.Config;
+using WeatherApp.Services.ErrorHandling;
 
 namespace WeatherApp.Services
 {
@@ -14,9 +15,6 @@ namespace WeatherApp.Services
     /// </summary>
     public class WeatherApiClient : MonoBehaviour
     {
-        [Header("API Configuration")]
-        [SerializeField] private string baseUrl = "http://api.openweathermap.org/data/2.5/weather";
-        
         /// <summary>
         /// Fetch weather data for a specific city using async/await pattern
         /// TODO: Students will implement this method
@@ -38,23 +36,28 @@ namespace WeatherApp.Services
                 Debug.LogError("API key not configured. Please set up your config.json file in StreamingAssets folder.");
                 return null;
             }
+             
+            string apiKey = ApiConfig.OpenWeatherMapApiKey;
+            string url = $"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={apiKey}";
             
-            // TODO: Build the complete URL with city and API key
-            string url = $"";
-            
-            // TODO: Create UnityWebRequest and use modern async pattern
             using (UnityWebRequest request = UnityWebRequest.Get(url))
             {
-                // TODO: Use async/await, send the request and wait for response
-                
-                // TODO: Implement proper error handling for different result types
-                // Check request.result for Success, ConnectionError, ProtocolError, DataProcessingError
-                
-                // TODO: Parse JSON response using Newtonsoft.Json
-                
-                // TODO: Return the parsed WeatherData object
-                
-                return null; // Placeholder - students will replace this
+                request.SetRequestHeader("Content-Type", "application/json");
+                var operation = request.SendWebRequest();
+                while (!operation.isDone)
+                {
+                    await Task.Yield();
+                }
+
+                if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    Debug.LogError(WeatherErrorHandler.GetUserFriendlyMessage(request.result, request.responseCode, request.error));
+                    return null;
+                }
+
+                string jsonResponse = request.downloadHandler.text;
+                WeatherData weatherData = JsonConvert.DeserializeObject<WeatherData>(jsonResponse);
+                return weatherData;
             }
         }
         
@@ -63,8 +66,8 @@ namespace WeatherApp.Services
         /// </summary>
         private async void Start()
         {
-            // Example: Get weather for London
-            var weatherData = await GetWeatherDataAsync("London");
+            // Example: Get weather for Stockholm
+            var weatherData = await GetWeatherDataAsync("Stockholm");
             
             if (weatherData != null && weatherData.IsValid)
             {

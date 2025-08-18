@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using WeatherApp.Services;
 using WeatherApp.Data;
+using Databases;
 
 namespace WeatherApp.UI
 {
@@ -13,13 +14,13 @@ namespace WeatherApp.UI
     public class WeatherUIController : MonoBehaviour
     {
         [Header("UI References")]
-        [SerializeField] private TMP_InputField cityInputField;
-        [SerializeField] private Button getWeatherButton;
-        [SerializeField] private TextMeshProUGUI weatherDisplayText;
-        [SerializeField] private TextMeshProUGUI statusText;
+        [SerializeField] private TMP_InputField cityInputField = default;
+        [SerializeField] private Button getWeatherButton = default;
+        [SerializeField] private TextMeshProUGUI weatherDisplayText = default;
+        [SerializeField] private TextMeshProUGUI statusText = default;
         
         [Header("API Client")]
-        [SerializeField] private WeatherApiClient apiClient;
+        [SerializeField] private WeatherApiClient apiClient = default;
         
         private void Start()
         {
@@ -30,64 +31,50 @@ namespace WeatherApp.UI
             SetStatusText("Enter a city name and click Get Weather");
         }
         
-        /// TODO: Students will implement this method
         private async void OnGetWeatherClicked()
         {
-            // Get city name from input field
             string cityName = cityInputField.text;
-            
-            // Validate input
             if (string.IsNullOrWhiteSpace(cityName))
             {
                 SetStatusText("Please enter a city name");
                 return;
             }
-            
-            // Disable button and show loading state
+
             getWeatherButton.interactable = false;
             SetStatusText("Loading weather data...");
             weatherDisplayText.text = "";
-            
+
             try
             {
-                // TODO: Call API client to get weather data
-              
-                
-                // TODO: Handle the response
+                var weatherData = await apiClient.GetWeatherDataAsync(cityName);
+                if (weatherData != null && weatherData.IsValid)
+                {
+                    DisplayWeatherData(weatherData);
+                    GameDataManager.Instance.SaveWeatherData(weatherData);
+                }
+                else
+                {
+                    SetStatusText("Failed to get weather data");
+                }
             }
             catch (System.Exception ex)
             {
-                // Handle exceptions
                 Debug.LogError($"Error getting weather data: {ex.Message}");
                 SetStatusText("An error occurred. Please try again.");
             }
             finally
             {
-                // Re-enable button
                 getWeatherButton.interactable = true;
             }
         }
         
-        /// TODO: Students will implement this method
         private void DisplayWeatherData(WeatherData weatherData)
         {
-            // TODO: Format and display weather information
-            // Example format:
-            // City: London
-            // Temperature: 15.2°C (Feels like: 14.1°C)
-            // Description: Clear sky
-            // Humidity: 65%
-            // Pressure: 1013 hPa
-
-            string displayText = "";
-            
-            // TODO: Add more weather details
-            if (weatherData.Main != null)
-            {
-                displayText += "";
-                displayText += "";
-            }
-            
+            string displayText = $"City: {weatherData.CityName}\n" +
+                         $"Temperature: {weatherData.TemperatureInCelsius:F1}°C\n" +
+                         $"Description: {weatherData.PrimaryDescription}\n" +
+                         $"Humidity: {weatherData.Main.Humidity}%\n" +
+                         $"Pressure: {weatherData.Main.Pressure} hPa";
             weatherDisplayText.text = displayText;
         }
         

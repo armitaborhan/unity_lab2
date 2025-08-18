@@ -10,12 +10,12 @@ namespace Databases.UI
     public class DatabaseTestUI : MonoBehaviour
     {
         [Header("UI References")]
-        [SerializeField] private Button addHighScoreButton;
-        [SerializeField] private Button showHighScoresButton;
-        [SerializeField] private Button clearDataButton;
-        [SerializeField] private TextMeshProUGUI displayText;
-        [SerializeField] private TMP_InputField playerNameInput;
-        [SerializeField] private TMP_InputField scoreInput;
+        [SerializeField] private Button addHighScoreButton = default;
+        [SerializeField] private Button showHighScoresButton = default;
+        [SerializeField] private Button clearDataButton = default;
+        [SerializeField] private TextMeshProUGUI displayText = default;
+        [SerializeField] private TMP_InputField playerNameInput = default;
+        [SerializeField] private TMP_InputField scoreInput = default;
 
         private void Start()
         {
@@ -54,7 +54,8 @@ namespace Databases.UI
 
                 if (int.TryParse(scoreText, out int score))
                 {
-                    // TODO: Use GameDataManager to add the high score
+                    // Add the high score using GameDataManager
+                    GameDataManager.Instance.AddHighScore(playerName, score);
 
                     UpdateDisplay($"High score added: {playerName} - {score} points");
 
@@ -78,9 +79,8 @@ namespace Databases.UI
         {
             try
             {
-                // TODO: Use GameDataManager to get high scores
-
-                var scores = new List<HighScore>(); // Placeholder - students will replace this
+                // Get high scores from GameDataManager
+                var scores = GameDataManager.Instance.GetTopHighScores();
 
                 if (scores.Count == 0)
                 {
@@ -108,7 +108,8 @@ namespace Databases.UI
         {
             try
             {
-                // TODO: Use GameDataManager to clear all high scores
+                // Clear all high scores using GameDataManager
+                GameDataManager.Instance.ClearAllHighScores();
 
                 UpdateDisplay("All high scores cleared from database");
             }
